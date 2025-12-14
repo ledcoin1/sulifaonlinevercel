@@ -2,28 +2,82 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Сулифа Миниапп</title>
+<title>Admin Panel – Сулифа</title>
+<style>
+  body { font-family: Arial; max-width: 600px; margin: 30px auto; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  input, button { padding: 5px; margin: 3px; }
+</style>
 </head>
 <body>
-<h1>Сулифа</h1>
-<p>Баланс: <span id="balance">0</span></p>
+<h2>Админ панель – Ойыншылар және баланстар</h2>
+
+<label>Admin Key:</label>
+<input type="password" id="adminKey">
+<button onclick="loadPlayers()">Кіру</button>
+
+<div id="panel" style="display:none;">
+  <table>
+    <thead>
+      <tr>
+        <th>Telegram ID</th>
+        <th>Баланс</th>
+        <th>Жаңарту</th>
+      </tr>
+    </thead>
+    <tbody id="playersTable"></tbody>
+  </table>
+</div>
 
 <script>
-const tg = window.Telegram.WebApp;
-const telegramId = tg.initDataUnsafe.user.id;
-const username = tg.initDataUnsafe.user.username;
+const backendURL = "https://sulifaonlinerender.onrender.com"; // Render серверіңіз
 
-async function login() {
-  const res = await fetch("https://sulifaonlinerender.onrender.com", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ telegramId, username })
-  });
-  const data = await res.json();
-  document.getElementById("balance").innerText = data.balance;
+async function loadPlayers() {
+  const key = document.getElementById("adminKey").value;
+  if (!key) { alert("Admin Key енгізіңіз"); return; }
+
+  try {
+    const res = await fetch(`${backendURL}/api/admin/players`, {
+      headers: { adminkey: key }
+    });
+    if (!res.ok) { alert("Қате немесе Unauthorized"); return; }
+    const data = await res.json();
+
+    const tbody = document.getElementById("playersTable");
+    tbody.innerHTML = "";
+    data.players.forEach(player => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${player.telegramId}</td>
+        <td><input type="number" value="${player.balance}" id="balance-${player.telegramId}"></td>
+        <td><button onclick="updateBalance('${player.telegramId}')">Жаңарту</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("panel").style.display = "block";
+  } catch (err) {
+    console.error(err);
+    alert("Серверге қосылу мүмкін емес");
+  }
 }
 
-login();
+async function updateBalance(telegramId) {
+  const newBalance = Number(document.getElementById(`balance-${telegramId}`).value);
+  const key = document.getElementById("adminKey").value;
+
+  try {
+    const res = await fetch(`${backendURL}/api/admin/update-balance`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ telegramId, newBalance, adminKey: key })
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error); return; }
+    alert(`Баланс жаңартылды: ${data.balance}`);
+  } catch (err) { console.error(err); alert("Серверге қосылу мүмкін емес"); }
+}
 </script>
 </body>
 </html>
