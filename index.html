@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Сулифа Миниапп</title>
+</head>
+<body>
+<h1>Сулифа</h1>
+<p>Баланс: <span id="balance">0</span></p>
+
+<script>
+const tg = window.Telegram.WebApp;
+const telegramId = tg.initDataUnsafe.user.id;
+const username = tg.initDataUnsafe.user.username;
+
+async function login() {
+  const res = await fetch("https://YOUR_BACKEND_URL/api/player/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ telegramId, username })
+  });
+  const data = await res.json();
+  document.getElementById("balance").innerText = data.balance;
+}
+
+login();
+</script>
+</body>
+</html>
