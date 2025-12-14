@@ -14,7 +14,7 @@ const telegramId = tg.initDataUnsafe.user.id;
 const username = tg.initDataUnsafe.user.username;
 
 async function login() {
-  const res = await fetch("https://YOUR_BACKEND_URL/api/player/login", {
+  const res = await fetch("https://sulifaonlinerender.onrender.com", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ telegramId, username })
