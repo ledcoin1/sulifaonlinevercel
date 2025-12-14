@@ -15,30 +15,14 @@
 
 <script>
 const backendURL = "https://sulifaonlinerender.onrender.com";
-const telegramId = prompt("Сіздің Telegram ID енгізіңіз") || "test_player";
+const id = prompt("Сіздің Telegram ID енгізіңіз") || "test_player";
 
-// Ойыншыны серверге қосу (егер жоқ болса, автоматты түрде жасау)
 async function initPlayer() {
   try {
-    // Алдымен ойыншыны тексеру
-    const res = await fetch(`${backendURL}/api/player/${telegramId}`);
-    let data;
-    if (res.status === 404) {
-      // Жаңа ойыншы жасау
-      const createRes = await fetch(`${backendURL}/api/player/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegramId })
-      });
-      data = await createRes.json();
-    } else {
-      data = await res.json();
-    }
-
+    const res = await fetch(`${backendURL}/balance/${id}`);
+    const data = await res.json();
     document.getElementById("balance").innerText = data.balance;
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) { console.error(err); }
 }
 
 initPlayer();
