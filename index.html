@@ -33,31 +33,37 @@
 
 <script>
 const SERVER = "https://sulifaonlinerender.onrender.com";
-const playerId = "test_358418"; // нақты ойыншы tgId
+
+// Telegram Mini App арқылы tgId алу
+const tgData = window.Telegram?.WebApp?.initDataUnsafe || {};
+const playerId = tgData.user?.id || "test_358418"; // Telegram болмаса тест ID
 document.getElementById("tgId").innerText = playerId;
 
 const socket = io(SERVER);
 
-// тіркелу
-fetch(`${SERVER}/player`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ tgId: playerId })
-}).then(r => r.json())
-  .then(data => updateBalance(data.balance));
-
+// Баланс жаңарту
 function updateBalance(balance) {
   document.getElementById("balance").innerText = balance;
 }
 
-// ойынға қосылу
+// Серверге тіркелу
+fetch(`${SERVER}/player`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ tgId: playerId })
+})
+.then(r => r.json())
+.then(data => updateBalance(data.balance));
+
+// Ойынға қосылу
 socket.emit("joinGame", { tgId: playerId });
+
+let currentRoom = null;
 
 socket.on("waiting", data => {
   document.getElementById("status").innerText = data.message;
 });
 
-let currentRoom = null;
 socket.on("gameStart", data => {
   currentRoom = data.roomId;
   document.getElementById("status").innerText = "Ойын басталды! Таңдауыңызды жасаңыз.";
@@ -70,13 +76,17 @@ function makeMove(move) {
 
 socket.on("roundResult", data => {
   const { move1, move2, winner, balances } = data;
-  let statusText = `Сіздің таңдауыңыз: ${move1 === move2 ? move1 : 'көрінбейді'}, қарсы: ${move2}\n`;
-  if (winner === "draw") statusText += "Тең нәтижe!";
-  else if ((winner === "player1" && playerId === data.balances?.player1) || 
-           (winner === "player2" && playerId === data.balances?.player2)) statusText += "Сіз жеңдіңіз!";
+  let statusText = `Сіздің таңдауыңыз: ${move1}, қарсы: ${move2}\n`;
+
+  if (winner === "draw") statusText += "Тең нәтиже!";
+  else if ((winner === "player1" && playerId === data.roomBalances?.player1) || 
+           (winner === "player2" && playerId === data.roomBalances?.player2)) statusText += "Сіз жеңдіңіз!";
   else statusText += "Сіз жеңілдіңіз!";
+
   document.getElementById("status").innerText = statusText;
-  updateBalance(balances[playerId]);
+
+  // Баланс live жаңарту
+  if (balances[playerId] !== undefined) updateBalance(balances[playerId]);
 });
 </script>
 
