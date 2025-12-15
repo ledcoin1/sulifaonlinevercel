@@ -1,31 +1,44 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="kk">
 <head>
-<meta charset="UTF-8">
-<title>Сулифа – Ойыншы</title>
-<style>
-  body { margin: 0; font-family: Arial; height: 100vh; display: flex; align-items: center; justify-content: center; background-color: black; color: white; }
-  #balance { font-size: 24px; }
-</style>
+  <meta charset="UTF-8" />
+  <title>Sulifa Player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 <body>
-<div>
-  <div>Баланс: <span id="balance">0</span></div>
-</div>
+
+<h2>🎮 Ойыншы беті</h2>
+
+<div id="status">Жүктелуде...</div>
 
 <script>
-const backendURL = "https://sulifaonlinerender.onrender.com";
-const id = prompt("Сіздің Telegram ID енгізіңіз") || "test_player";
+const SERVER = "https://sulifaonlinerender.onrender.com";
 
-async function initPlayer() {
-  try {
-    const res = await fetch(`${backendURL}/balance/${id}`);
-    const data = await res.json();
-    document.getElementById("balance").innerText = data.balance;
-  } catch (err) { console.error(err); }
+// ❗ Уақытша тест режимі (Telegram жоқ кезде)
+let tgId = localStorage.getItem("tgId");
+if (!tgId) {
+  tgId = "test_" + Math.floor(Math.random() * 1000000);
+  localStorage.setItem("tgId", tgId);
 }
 
-initPlayer();
+// Telegram қосылғанда осылай болады:
+// const tgId = Telegram.WebApp.initDataUnsafe.user.id;
+
+fetch(`${SERVER}/player`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ tgId })
+})
+.then(res => res.json())
+.then(data => {
+  document.getElementById("status").innerText =
+    `ID: ${data.tgId}\nБаланс: ${data.balance}`;
+})
+.catch(() => {
+  document.getElementById("status").innerText =
+    "Серверге қосыла алмады";
+});
 </script>
+
 </body>
 </html>
