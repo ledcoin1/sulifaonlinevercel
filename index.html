@@ -13,39 +13,70 @@
   <h1 class="text-3xl font-bold mb-6">🎮 Sulifa Player</h1>
 
   <div class="bg-white p-4 rounded shadow mb-4">
-    <p class="text-lg">TG ID: <span id="tgId"></span></p>
-    <p class="text-lg">Баланс: <span id="balance">0</span></p>
+    <p>TG ID: <span id="tgId"></span></p>
+    <p>Баланс: <span id="balance">0</span></p>
+  </div>
+
+  <div class="bg-white p-4 rounded shadow mb-4">
+    <p class="mb-2">Ойын таңдаңыз:</p>
+    <div class="flex gap-4">
+      <button onclick="makeMove('rock')" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">🪨 Тас</button>
+      <button onclick="makeMove('paper')" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">📄 Қағаз</button>
+      <button onclick="makeMove('scissors')" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">✂️ Қайшы</button>
+    </div>
+  </div>
+
+  <div class="bg-white p-4 rounded shadow">
+    <p id="status">Керекті қарсы ойыншыны күтіңіз...</p>
   </div>
 </div>
 
 <script>
 const SERVER = "https://sulifaonlinerender.onrender.com";
 const playerId = "test_358418"; // нақты ойыншы tgId
-
 document.getElementById("tgId").innerText = playerId;
 
-// Socket.io қосу
 const socket = io(SERVER);
 
-// Баланс UI жаңарту функциясы
-function updateBalanceUI(balance) {
-  document.getElementById("balance").innerText = balance;
-}
-
-// Серверге тіркелу
+// тіркелу
 fetch(`${SERVER}/player`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ tgId: playerId })
-})
-.then(r => r.json())
-.then(data => updateBalanceUI(data.balance));
+}).then(r => r.json())
+  .then(data => updateBalance(data.balance));
 
-// Live update тыңдау
-socket.on("balanceUpdated", data => {
-  if (data.tgId === playerId) {
-    updateBalanceUI(data.balance);
-  }
+function updateBalance(balance) {
+  document.getElementById("balance").innerText = balance;
+}
+
+// ойынға қосылу
+socket.emit("joinGame", { tgId: playerId });
+
+socket.on("waiting", data => {
+  document.getElementById("status").innerText = data.message;
+});
+
+let currentRoom = null;
+socket.on("gameStart", data => {
+  currentRoom = data.roomId;
+  document.getElementById("status").innerText = "Ойын басталды! Таңдауыңызды жасаңыз.";
+});
+
+function makeMove(move) {
+  if (!currentRoom) return alert("Ойын басталмаған");
+  socket.emit("playerMove", { roomId: currentRoom, move });
+}
+
+socket.on("roundResult", data => {
+  const { move1, move2, winner, balances } = data;
+  let statusText = `Сіздің таңдауыңыз: ${move1 === move2 ? move1 : 'көрінбейді'}, қарсы: ${move2}\n`;
+  if (winner === "draw") statusText += "Тең нәтижe!";
+  else if ((winner === "player1" && playerId === data.balances?.player1) || 
+           (winner === "player2" && playerId === data.balances?.player2)) statusText += "Сіз жеңдіңіз!";
+  else statusText += "Сіз жеңілдіңіз!";
+  document.getElementById("status").innerText = statusText;
+  updateBalance(balances[playerId]);
 });
 </script>
 
