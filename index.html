@@ -1,80 +1,164 @@
 <!DOCTYPE html>
 <html lang="kk">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Sulifa 1v1</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Telegram Mini App -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Socket.io -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 
-<body class="bg-indigo-700 min-h-screen flex items-center justify-center text-white">
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
 
-<div class="bg-white text-gray-800 rounded-xl p-6 w-80 text-center">
+<div class="w-full max-w-md bg-gray-800 rounded-xl p-6 shadow-xl">
 
-  <h1 class="text-xl font-bold mb-3">🎮 Sulifa 1v1</h1>
+  <!-- HEADER -->
+  <h1 class="text-2xl font-bold text-center mb-4">🪨📄✂️ Сулифа 1v1</h1>
 
-  <div id="status">Дайын</div>
-
-  <button onclick="start()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded">
-    Ойнау
-  </button>
-
-  <div id="choices" class="hidden mt-4 space-y-2">
-    <button onclick="send('rock')" class="btn">🪨 Тас</button>
-    <button onclick="send('paper')" class="btn">📄 Қағаз</button>
-    <button onclick="send('scissors')" class="btn">✂️ Қайшы</button>
+  <!-- PLAYER INFO -->
+  <div class="text-center mb-4">
+    <div>ID: <span id="tgId" class="font-mono text-sm"></span></div>
+    <div class="mt-1">Баланс: <span id="balance" class="font-bold">0</span></div>
   </div>
+
+  <!-- STATUS -->
+  <div id="status" class="text-center text-yellow-400 mb-4">
+    Серверге қосылуда...
+  </div>
+
+  <!-- GAME BUTTONS -->
+  <div id="buttons" class="hidden grid grid-cols-3 gap-3 mb-4">
+    <button onclick="sendChoice('rock')" class="bg-blue-600 p-3 rounded">🪨</button>
+    <button onclick="sendChoice('paper')" class="bg-green-600 p-3 rounded">📄</button>
+    <button onclick="sendChoice('scissors')" class="bg-red-600 p-3 rounded">✂️</button>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result" class="hidden text-center text-lg font-semibold"></div>
+
+  <!-- RESTART -->
+  <button id="restart"
+    onclick="joinGame()"
+    class="hidden mt-4 w-full bg-purple-600 p-2 rounded">
+    🔁 Қайта ойнау
+  </button>
 
 </div>
 
 <script>
-const tg = Telegram.WebApp;
-tg.ready();
+/* ================= CONFIG ================= */
+const SERVER = "https://sulifaonlinerender.onrender.com";
 
-const tgId = String(tg.initDataUnsafe.user.id);
-const socket = io("https://sulifaonlinerender.onrender.com");
+/* ================= TELEGRAM ================= */
+const tg = window.Telegram.WebApp;
+tg.expand();
 
-function start() {
-  socket.emit("join_game", tgId);
-  document.getElementById("status").innerText = "⏳ Күту...";
+// ⚠️ НАСТОЯЩИЙ Telegram ID
+const tgId = tg.initDataUnsafe?.user?.id?.toString();
+
+if (!tgId) {
+  alert("Telegram ID табылмады");
 }
 
-socket.on("waiting", () => {
-  document.getElementById("status").innerText = "⌛ Қарсылас күтілуде...";
+/* ================= STATE ================= */
+let socket;
+let myBalance = 0;
+
+/* ================= UI ================= */
+document.getElementById("tgId").innerText = tgId;
+
+/* ================= REGISTER PLAYER ================= */
+fetch(`${SERVER}/player`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ tgId })
+})
+.then(r => r.json())
+.then(p => {
+  myBalance = p.balance;
+  document.getElementById("balance").innerText = myBalance;
+  connectSocket();
 });
 
-socket.on("game_start", () => {
-  document.getElementById("status").innerText = "✊ Таңда";
-  document.getElementById("choices").classList.remove("hidden");
-});
+/* ================= SOCKET ================= */
+function connectSocket() {
+  socket = io(SERVER);
 
-function send(choice) {
-  document.getElementById("choices").classList.add("hidden");
-  document.getElementById("status").innerText = "⏳ Күту...";
+  socket.on("connect", () => {
+    joinGame();
+  });
+
+  socket.on("waiting", () => {
+    setStatus("⏳ Ойыншы күтілуде...");
+    hideButtons();
+  });
+
+  socket.on("game_start", () => {
+    setStatus("🎮 Ойын басталды! Таңда");
+    showButtons();
+  });
+
+  socket.on("game_result", data => {
+    hideButtons();
+
+    let text = `Сен: ${icon(data.p1)} | Қарсылас: ${icon(data.p2)}<br>`;
+
+    if (data.winner === "draw") {
+      text += "🤝 Тең!";
+    } else if (data.winner === tgId) {
+      text += "🏆 Сен жеңдің!";
+      myBalance++;
+    } else {
+      text += "❌ Сен жеңілдің";
+      myBalance--;
+    }
+
+    document.getElementById("balance").innerText = myBalance;
+    document.getElementById("result").innerHTML = text;
+    document.getElementById("result").classList.remove("hidden");
+    document.getElementById("restart").classList.remove("hidden");
+    setStatus("Ойын аяқталды");
+  });
+}
+
+/* ================= GAME ================= */
+function joinGame() {
+  document.getElementById("result").classList.add("hidden");
+  document.getElementById("restart").classList.add("hidden");
+  setStatus("Серверге қосылу...");
+  socket.emit("join_game", tgId);
+}
+
+function sendChoice(choice) {
+  hideButtons();
+  setStatus("⏳ Қарсыласты күту...");
   socket.emit("choice", choice);
 }
 
-socket.on("game_result", data => {
-  let msg = "🤝 Тең";
-  if (data.winner === tgId) msg = "🏆 Жеңдің!";
-  else if (data.winner !== "draw") msg = "❌ Жеңілдің";
-
-  document.getElementById("status").innerText = msg;
-});
-</script>
-
-<style>
-.btn {
-  background:#6366f1;
-  color:white;
-  width:100%;
-  padding:10px;
-  border-radius:10px;
+/* ================= HELPERS ================= */
+function setStatus(text) {
+  document.getElementById("status").innerText = text;
 }
-</style>
+
+function showButtons() {
+  document.getElementById("buttons").classList.remove("hidden");
+}
+
+function hideButtons() {
+  document.getElementById("buttons").classList.add("hidden");
+}
+
+function icon(v) {
+  return v === "rock" ? "🪨" : v === "paper" ? "📄" : "✂️";
+}
+</script>
 
 </body>
 </html>
