@@ -2,16 +2,10 @@
 <html lang="kk">
 <head>
   <meta charset="UTF-8">
-  <title>Sulifa 1v1 Bet</title>
+  <title>Sulifa 1v1 Bet Rooms</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Telegram Mini App -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Socket.io -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 
@@ -19,30 +13,27 @@
 
 <div class="w-full max-w-md bg-gray-800 rounded-xl p-6 shadow-xl">
 
-  <!-- HEADER -->
   <h1 class="text-2xl font-bold text-center mb-4">🪨📄✂️ Сулифа 1v1</h1>
 
   <!-- PLAYER INFO -->
   <div class="text-center mb-4">
-    <div class="text-sm">Telegram ID</div>
-    <div id="tgId" class="font-mono text-xs break-all"></div>
+    <div>ID: <span id="tgId" class="font-mono text-xs break-all"></span></div>
     <div class="mt-2 text-lg">Баланс: <span id="balance">0</span> 💰</div>
   </div>
 
-  <!-- BET SELECTION -->
+  <!-- BET ROOMS -->
   <div id="betPanel" class="mb-4">
-    <div class="text-center mb-2 font-semibold">Ставка таңда</div>
-    <div class="grid grid-cols-3 gap-3">
-      <button onclick="selectBet(10)" class="bet-btn bg-gray-700 p-3 rounded">10</button>
-      <button onclick="selectBet(50)" class="bet-btn bg-gray-700 p-3 rounded">50</button>
-      <button onclick="selectBet(100)" class="bet-btn bg-gray-700 p-3 rounded">100</button>
+    <div class="text-center mb-2 font-semibold">Ставка бөлмесін таңда</div>
+    <div class="grid grid-cols-4 gap-2">
+      <button onclick="joinRoom(500)" class="bet-btn bg-gray-700 p-2 rounded">500</button>
+      <button onclick="joinRoom(1000)" class="bet-btn bg-gray-700 p-2 rounded">1000</button>
+      <button onclick="joinRoom(1500)" class="bet-btn bg-gray-700 p-2 rounded">1500</button>
+      <button onclick="joinRoom(2000)" class="bet-btn bg-gray-700 p-2 rounded">2000</button>
     </div>
   </div>
 
   <!-- STATUS -->
-  <div id="status" class="text-center text-yellow-400 mb-4">
-    Серверге қосылу...
-  </div>
+  <div id="status" class="text-center text-yellow-400 mb-4">Серверге қосылу...</div>
 
   <!-- GAME BUTTONS -->
   <div id="gamePanel" class="hidden grid grid-cols-3 gap-3 mb-4">
@@ -55,53 +46,38 @@
   <div id="result" class="hidden text-center text-lg font-semibold"></div>
 
   <!-- RESTART -->
-  <button id="restart"
-    onclick="resetGame()"
-    class="hidden mt-4 w-full bg-purple-600 p-2 rounded">
+  <button id="restart" onclick="resetGame()" class="hidden mt-4 w-full bg-purple-600 p-2 rounded">
     🔁 Қайта ойнау
   </button>
 
 </div>
 
 <script>
-/* ================= CONFIG ================= */
 const SERVER = "https://sulifaonlinerender.onrender.com";
-
-/* ================= TELEGRAM ================= */
 const tg = window.Telegram.WebApp;
 tg.expand();
 const tgId = tg.initDataUnsafe?.user?.id?.toString();
 if (!tgId) alert("Telegram ID табылмады");
 
-/* ================= STATE ================= */
-let socket;
-let myBalance = 0;
-let selectedBet = null;
+let socket, myBalance = 0, selectedBet = null;
 
-/* ================= UI ================= */
 document.getElementById("tgId").innerText = tgId;
 
-/* ================= REGISTER ================= */
 fetch(`${SERVER}/player`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ tgId })
-})
-.then(r => r.json())
-.then(p => {
-  myBalance = p.balance;
-  updateBalance();
-  connectSocket();
-});
+}).then(r => r.json())
+  .then(p => {
+    myBalance = p.balance;
+    updateBalance();
+    connectSocket();
+  });
 
-/* ================= SOCKET ================= */
 function connectSocket() {
   socket = io(SERVER);
 
-  socket.on("waiting", () => {
-    setStatus("⏳ Қарсылас күтілуде...");
-  });
-
+  socket.on("waiting", () => setStatus("⏳ Қарсылас күтілуде..."));
   socket.on("game_start", () => {
     document.getElementById("betPanel").classList.add("hidden");
     setStatus("🎮 Таңда!");
@@ -110,84 +86,34 @@ function connectSocket() {
 
   socket.on("game_result", data => {
     hideGame();
-    let text = `
-      Ставка: ${data.bet} 💰<br>
-      Сен: ${icon(data.p1)} | Қарсылас: ${icon(data.p2)}<br>
-    `;
-
-    if (data.winner === "draw") {
-      text += "🤝 Тең!";
-    } else if (data.winner === tgId) {
-      text += "🏆 Сен жеңдің!";
-      myBalance += data.bet;
-    } else {
-      text += "❌ Сен жеңілдің";
-      myBalance -= data.bet;
-    }
-
+    let text = `Ставка: ${data.bet} 💰<br>Сен: ${icon(data.p1)} | Қарсылас: ${icon(data.p2)}<br>`;
+    if (data.winner === "draw") text += "🤝 Тең!";
+    else if (data.winner === tgId) { text += "🏆 Сен жеңдің!"; myBalance += data.bet; }
+    else { text += "❌ Сен жеңілдің"; myBalance -= data.bet; }
     updateBalance();
     showResult(text);
   });
 
-  socket.on("error_msg", msg => {
-    alert(msg);
-    resetGame();
-  });
+  socket.on("error_msg", msg => { alert(msg); resetGame(); });
 }
 
-/* ================= GAME ================= */
-function selectBet(bet) {
-  if (bet > myBalance) return alert("Баланс жеткіліксіз");
-
+function joinRoom(bet) {
+  if (myBalance < bet) return alert("Баланс жеткіліксіз");
   selectedBet = bet;
   document.querySelectorAll(".bet-btn").forEach(b => b.classList.remove("bg-green-600"));
   event.target.classList.add("bg-green-600");
-
   setStatus("Ойынға қосылу...");
   socket.emit("join_game", { tgId, bet });
 }
 
-function sendChoice(choice) {
-  hideGame();
-  setStatus("⏳ Қарсылас таңдауда...");
-  socket.emit("choice", choice);
-}
-
-/* ================= HELPERS ================= */
-function resetGame() {
-  selectedBet = null;
-  document.getElementById("betPanel").classList.remove("hidden");
-  document.getElementById("result").classList.add("hidden");
-  document.getElementById("restart").classList.add("hidden");
-  setStatus("Ставка таңда");
-}
-
-function updateBalance() {
-  document.getElementById("balance").innerText = myBalance;
-}
-
-function setStatus(t) {
-  document.getElementById("status").innerText = t;
-}
-
-function showGame() {
-  document.getElementById("gamePanel").classList.remove("hidden");
-}
-
-function hideGame() {
-  document.getElementById("gamePanel").classList.add("hidden");
-}
-
-function showResult(text) {
-  const r = document.getElementById("result");
-  r.innerHTML = text;
-  r.classList.remove("hidden");
-  document.getElementById("restart").classList.remove("hidden");
-}
-
-function icon(v) {
-  return v === "rock" ? "🪨" : v === "paper" ? "📄" : "✂️";
-}
+function sendChoice(choice) { hideGame(); setStatus("⏳ Қарсылас таңдауда..."); socket.emit("choice", choice); }
+function resetGame() { selectedBet = null; document.getElementById("betPanel").classList.remove("hidden"); document.getElementById("result").classList.add("hidden"); document.getElementById("restart").classList.add("hidden"); setStatus("Ставка бөлмесін таңда"); }
+function updateBalance() { document.getElementById("balance").innerText = myBalance; }
+function setStatus(t) { document.getElementById("status").innerText = t; }
+function showGame() { document.getElementById("gamePanel").classList.remove("hidden"); }
+function hideGame() { document.getElementById("gamePanel").classList.add("hidden"); }
+function showResult(text) { const r = document.getElementById("result"); r.innerHTML = text; r.classList.remove("hidden"); document.getElementById("restart").classList.remove("hidden"); }
+function icon(v) { return v === "rock" ? "🪨" : v === "paper" ? "📄" : "✂️"; }
 </script>
 
 </body>
