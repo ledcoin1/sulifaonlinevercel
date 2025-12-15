@@ -2,10 +2,10 @@
 <html lang="kk">
 <head>
   <meta charset="UTF-8">
-  <title>Sulifa Mini App</title>
+  <title>Sulifa 1v1</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Telegram SDK -->
+  <!-- Telegram Mini App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <!-- Tailwind -->
@@ -16,60 +16,158 @@
 
 <div class="bg-white text-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md">
 
-  <h1 class="text-2xl font-bold mb-4 text-center">🎮 Sulifa</h1>
+  <h1 class="text-2xl font-bold mb-4 text-center">🎮 Sulifa 1v1</h1>
 
-  <div class="mb-3">
-    <p class="text-sm text-gray-500">Telegram ID:</p>
-    <p id="tgId" class="font-mono text-sm break-all">...</p>
+  <!-- PLAYER INFO -->
+  <div class="mb-4 text-sm">
+    <div>🆔 ID: <span id="tgId">...</span></div>
+    <div>💰 Баланс: <span id="balance">0</span></div>
   </div>
 
-  <div class="mb-4">
-    <p class="text-sm text-gray-500">Баланс:</p>
-    <p id="balance" class="text-3xl font-bold text-green-600">0</p>
+  <!-- STATUS -->
+  <div id="status" class="text-center font-semibold mb-4">
+    Дайын
   </div>
 
-  <button onclick="reloadBalance()"
-    class="w-full bg-indigo-600 text-white py-2 rounded-xl hover:bg-indigo-700 transition">
-    🔄 Жаңарту
-  </button>
+  <!-- ACTIONS -->
+  <div id="actions" class="space-y-3">
+
+    <button onclick="joinGame()"
+      class="w-full bg-green-600 text-white py-2 rounded-xl hover:bg-green-700">
+      ▶️ Ойнау
+    </button>
+
+  </div>
+
+  <!-- CHOICES -->
+  <div id="choices" class="hidden grid grid-cols-3 gap-2 mt-4">
+    <button onclick="sendChoice('rock')" class="choice-btn">🪨 Тас</button>
+    <button onclick="sendChoice('paper')" class="choice-btn">📄 Қағаз</button>
+    <button onclick="sendChoice('scissors')" class="choice-btn">✂️ Қайшы</button>
+  </div>
 
 </div>
 
 <script>
 const SERVER = "https://sulifaonlinerender.onrender.com";
-
 const tg = window.Telegram.WebApp;
 tg.ready();
 
-// ❗ Telegram Mini App ішінде ғана жұмыс істейді
+// ===== CHECK TELEGRAM =====
 if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
   document.body.innerHTML = "<h1 class='text-white text-center mt-20'>❌ Telegram Mini App емес</h1>";
   throw new Error("Not Telegram Mini App");
 }
 
-const user = tg.initDataUnsafe.user;
-const tgId = String(user.id);
-
+const tgId = String(tg.initDataUnsafe.user.id);
 document.getElementById("tgId").innerText = tgId;
 
-// Серверге тіркелу
+let matchId = null;
+let myChoice = null;
+
+// ===== REGISTER PLAYER =====
 async function loadPlayer() {
   const res = await fetch(`${SERVER}/player`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ tgId })
   });
-
   const data = await res.json();
   document.getElementById("balance").innerText = data.balance;
 }
+loadPlayer();
 
-function reloadBalance() {
-  loadPlayer();
+// ===== JOIN GAME =====
+async function joinGame() {
+  document.getElementById("status").innerText = "⏳ Ойын ізделуде...";
+  const res = await fetch(`${SERVER}/game/join`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tgId })
+  });
+
+  const data = await res.json();
+  matchId = data.matchId;
+
+  if (data.status === "waiting") {
+    document.getElementById("status").innerText = "⌛ Қарсылас күтілуде...";
+    pollMatch();
+  } else {
+    startGame();
+  }
 }
 
-loadPlayer();
+// ===== START GAME =====
+function startGame() {
+  document.getElementById("status").innerText = "✊ Таңдауыңызды жасаңыз";
+  document.getElementById("choices").classList.remove("hidden");
+}
+
+// ===== SEND CHOICE =====
+async function sendChoice(choice) {
+  if (myChoice) return;
+  myChoice = choice;
+
+  document.getElementById("status").innerText = "⏳ Қарсылас күтілуде...";
+  document.getElementById("choices").classList.add("hidden");
+
+  await fetch(`${SERVER}/game/choice`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ matchId, tgId, choice })
+  });
+
+  pollMatch();
+}
+
+// ===== POLL MATCH STATUS =====
+async function pollMatch() {
+  const interval = setInterval(async () => {
+    const res = await fetch(`${SERVER}/game/choice`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ matchId, tgId })
+    });
+
+    const match = await res.json();
+
+    if (match.status === "playing" && !myChoice) {
+      startGame();
+    }
+
+    if (match.status === "finished") {
+      clearInterval(interval);
+      showResult(match);
+    }
+  }, 2000);
+}
+
+// ===== SHOW RESULT =====
+function showResult(match) {
+  let text = "🤝 Тең";
+
+  if (match.winner === tgId) text = "🏆 Сіз жеңдіңіз!";
+  else if (match.winner !== "draw") text = "❌ Сіз жеңілдіңіз";
+
+  document.getElementById("status").innerText = text;
+
+  myChoice = null;
+  matchId = null;
+}
 </script>
+
+<style>
+.choice-btn {
+  background: #6366f1;
+  color: white;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+.choice-btn:hover {
+  background: #4f46e5;
+}
+</style>
 
 </body>
 </html>
