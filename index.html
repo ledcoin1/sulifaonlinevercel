@@ -1,42 +1,51 @@
 <!DOCTYPE html>
 <html lang="kk">
 <head>
-  <meta charset="UTF-8" />
-  <title>Sulifa Player</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title>🎮 Sulifa Player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
-<body>
+<body class="bg-gray-100 text-gray-800">
 
-<h2>🎮 Ойыншы беті</h2>
+<div class="container mx-auto p-6">
+  <h1 class="text-3xl font-bold mb-6">🎮 Sulifa Player</h1>
 
-<div id="status">Жүктелуде...</div>
+  <div class="bg-white p-4 rounded shadow mb-4">
+    <p class="text-lg">TG ID: <span id="tgId"></span></p>
+    <p class="text-lg">Баланс: <span id="balance">0</span></p>
+  </div>
+</div>
 
 <script>
 const SERVER = "https://sulifaonlinerender.onrender.com";
+const playerId = "test_358418"; // нақты ойыншы tgId
 
-// ❗ Уақытша тест режимі (Telegram жоқ кезде)
-let tgId = localStorage.getItem("tgId");
-if (!tgId) {
-  tgId = "test_" + Math.floor(Math.random() * 1000000);
-  localStorage.setItem("tgId", tgId);
+document.getElementById("tgId").innerText = playerId;
+
+// Socket.io қосу
+const socket = io(SERVER);
+
+// Баланс UI жаңарту функциясы
+function updateBalanceUI(balance) {
+  document.getElementById("balance").innerText = balance;
 }
 
-// Telegram қосылғанда осылай болады:
-// const tgId = Telegram.WebApp.initDataUnsafe.user.id;
-
+// Серверге тіркелу
 fetch(`${SERVER}/player`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ tgId })
+  body: JSON.stringify({ tgId: playerId })
 })
-.then(res => res.json())
-.then(data => {
-  document.getElementById("status").innerText =
-    `ID: ${data.tgId}\nБаланс: ${data.balance}`;
-})
-.catch(() => {
-  document.getElementById("status").innerText =
-    "Серверге қосыла алмады";
+.then(r => r.json())
+.then(data => updateBalanceUI(data.balance));
+
+// Live update тыңдау
+socket.on("balanceUpdated", data => {
+  if (data.tgId === playerId) {
+    updateBalanceUI(data.balance);
+  }
 });
 </script>
 
