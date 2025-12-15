@@ -5,167 +5,74 @@
   <title>Sulifa 1v1</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Telegram Mini App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-  <!-- Tailwind -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-gradient-to-br from-indigo-600 to-purple-700 min-h-screen text-white flex items-center justify-center">
+<body class="bg-indigo-700 min-h-screen flex items-center justify-center text-white">
 
-<div class="bg-white text-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md">
+<div class="bg-white text-gray-800 rounded-xl p-6 w-80 text-center">
 
-  <h1 class="text-2xl font-bold mb-4 text-center">🎮 Sulifa 1v1</h1>
+  <h1 class="text-xl font-bold mb-3">🎮 Sulifa 1v1</h1>
 
-  <!-- PLAYER INFO -->
-  <div class="mb-4 text-sm">
-    <div>🆔 ID: <span id="tgId">...</span></div>
-    <div>💰 Баланс: <span id="balance">0</span></div>
-  </div>
+  <div id="status">Дайын</div>
 
-  <!-- STATUS -->
-  <div id="status" class="text-center font-semibold mb-4">
-    Дайын
-  </div>
+  <button onclick="start()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded">
+    Ойнау
+  </button>
 
-  <!-- ACTIONS -->
-  <div id="actions" class="space-y-3">
-
-    <button onclick="joinGame()"
-      class="w-full bg-green-600 text-white py-2 rounded-xl hover:bg-green-700">
-      ▶️ Ойнау
-    </button>
-
-  </div>
-
-  <!-- CHOICES -->
-  <div id="choices" class="hidden grid grid-cols-3 gap-2 mt-4">
-    <button onclick="sendChoice('rock')" class="choice-btn">🪨 Тас</button>
-    <button onclick="sendChoice('paper')" class="choice-btn">📄 Қағаз</button>
-    <button onclick="sendChoice('scissors')" class="choice-btn">✂️ Қайшы</button>
+  <div id="choices" class="hidden mt-4 space-y-2">
+    <button onclick="send('rock')" class="btn">🪨 Тас</button>
+    <button onclick="send('paper')" class="btn">📄 Қағаз</button>
+    <button onclick="send('scissors')" class="btn">✂️ Қайшы</button>
   </div>
 
 </div>
 
 <script>
-const SERVER = "https://sulifaonlinerender.onrender.com";
-const tg = window.Telegram.WebApp;
+const tg = Telegram.WebApp;
 tg.ready();
 
-// ===== CHECK TELEGRAM =====
-if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-  document.body.innerHTML = "<h1 class='text-white text-center mt-20'>❌ Telegram Mini App емес</h1>";
-  throw new Error("Not Telegram Mini App");
-}
-
 const tgId = String(tg.initDataUnsafe.user.id);
-document.getElementById("tgId").innerText = tgId;
+const socket = io("https://sulifaonlinerender.onrender.com");
 
-let matchId = null;
-let myChoice = null;
-
-// ===== REGISTER PLAYER =====
-async function loadPlayer() {
-  const res = await fetch(`${SERVER}/player`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tgId })
-  });
-  const data = await res.json();
-  document.getElementById("balance").innerText = data.balance;
-}
-loadPlayer();
-
-// ===== JOIN GAME =====
-async function joinGame() {
-  document.getElementById("status").innerText = "⏳ Ойын ізделуде...";
-  const res = await fetch(`${SERVER}/game/join`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tgId })
-  });
-
-  const data = await res.json();
-  matchId = data.matchId;
-
-  if (data.status === "waiting") {
-    document.getElementById("status").innerText = "⌛ Қарсылас күтілуде...";
-    pollMatch();
-  } else {
-    startGame();
-  }
+function start() {
+  socket.emit("join_game", tgId);
+  document.getElementById("status").innerText = "⏳ Күту...";
 }
 
-// ===== START GAME =====
-function startGame() {
-  document.getElementById("status").innerText = "✊ Таңдауыңызды жасаңыз";
+socket.on("waiting", () => {
+  document.getElementById("status").innerText = "⌛ Қарсылас күтілуде...";
+});
+
+socket.on("game_start", () => {
+  document.getElementById("status").innerText = "✊ Таңда";
   document.getElementById("choices").classList.remove("hidden");
-}
+});
 
-// ===== SEND CHOICE =====
-async function sendChoice(choice) {
-  if (myChoice) return;
-  myChoice = choice;
-
-  document.getElementById("status").innerText = "⏳ Қарсылас күтілуде...";
+function send(choice) {
   document.getElementById("choices").classList.add("hidden");
-
-  await fetch(`${SERVER}/game/choice`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ matchId, tgId, choice })
-  });
-
-  pollMatch();
+  document.getElementById("status").innerText = "⏳ Күту...";
+  socket.emit("choice", choice);
 }
 
-// ===== POLL MATCH STATUS =====
-async function pollMatch() {
-  const interval = setInterval(async () => {
-    const res = await fetch(`${SERVER}/game/choice`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ matchId, tgId })
-    });
+socket.on("game_result", data => {
+  let msg = "🤝 Тең";
+  if (data.winner === tgId) msg = "🏆 Жеңдің!";
+  else if (data.winner !== "draw") msg = "❌ Жеңілдің";
 
-    const match = await res.json();
-
-    if (match.status === "playing" && !myChoice) {
-      startGame();
-    }
-
-    if (match.status === "finished") {
-      clearInterval(interval);
-      showResult(match);
-    }
-  }, 2000);
-}
-
-// ===== SHOW RESULT =====
-function showResult(match) {
-  let text = "🤝 Тең";
-
-  if (match.winner === tgId) text = "🏆 Сіз жеңдіңіз!";
-  else if (match.winner !== "draw") text = "❌ Сіз жеңілдіңіз";
-
-  document.getElementById("status").innerText = text;
-
-  myChoice = null;
-  matchId = null;
-}
+  document.getElementById("status").innerText = msg;
+});
 </script>
 
 <style>
-.choice-btn {
-  background: #6366f1;
-  color: white;
-  padding: 12px;
-  border-radius: 12px;
-  font-weight: bold;
-}
-.choice-btn:hover {
-  background: #4f46e5;
+.btn {
+  background:#6366f1;
+  color:white;
+  width:100%;
+  padding:10px;
+  border-radius:10px;
 }
 </style>
 
