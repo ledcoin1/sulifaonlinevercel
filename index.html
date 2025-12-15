@@ -2,92 +2,73 @@
 <html lang="kk">
 <head>
   <meta charset="UTF-8">
-  <title>🎮 Sulifa Player</title>
+  <title>Sulifa Mini App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Telegram SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
-<body class="bg-gray-100 text-gray-800">
 
-<div class="container mx-auto p-6">
-  <h1 class="text-3xl font-bold mb-6">🎮 Sulifa Player</h1>
+<body class="bg-gradient-to-br from-indigo-600 to-purple-700 min-h-screen text-white flex items-center justify-center">
 
-  <div class="bg-white p-4 rounded shadow mb-4">
-    <p>TG ID: <span id="tgId"></span></p>
-    <p>Баланс: <span id="balance">0</span></p>
+<div class="bg-white text-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md">
+
+  <h1 class="text-2xl font-bold mb-4 text-center">🎮 Sulifa</h1>
+
+  <div class="mb-3">
+    <p class="text-sm text-gray-500">Telegram ID:</p>
+    <p id="tgId" class="font-mono text-sm break-all">...</p>
   </div>
 
-  <div class="bg-white p-4 rounded shadow mb-4">
-    <p class="mb-2">Ойын таңдаңыз:</p>
-    <div class="flex gap-4">
-      <button onclick="makeMove('rock')" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">🪨 Тас</button>
-      <button onclick="makeMove('paper')" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">📄 Қағаз</button>
-      <button onclick="makeMove('scissors')" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">✂️ Қайшы</button>
-    </div>
+  <div class="mb-4">
+    <p class="text-sm text-gray-500">Баланс:</p>
+    <p id="balance" class="text-3xl font-bold text-green-600">0</p>
   </div>
 
-  <div class="bg-white p-4 rounded shadow">
-    <p id="status">Керекті қарсы ойыншыны күтіңіз...</p>
-  </div>
+  <button onclick="reloadBalance()"
+    class="w-full bg-indigo-600 text-white py-2 rounded-xl hover:bg-indigo-700 transition">
+    🔄 Жаңарту
+  </button>
+
 </div>
 
 <script>
 const SERVER = "https://sulifaonlinerender.onrender.com";
 
-// Telegram Mini App арқылы tgId алу
-const tgData = window.Telegram?.WebApp?.initDataUnsafe || {};
-const playerId = tgData.user?.id || "test_358418"; // Telegram болмаса тест ID
-document.getElementById("tgId").innerText = playerId;
+const tg = window.Telegram.WebApp;
+tg.ready();
 
-const socket = io(SERVER);
-
-// Баланс жаңарту
-function updateBalance(balance) {
-  document.getElementById("balance").innerText = balance;
+// ❗ Telegram Mini App ішінде ғана жұмыс істейді
+if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
+  document.body.innerHTML = "<h1 class='text-white text-center mt-20'>❌ Telegram Mini App емес</h1>";
+  throw new Error("Not Telegram Mini App");
 }
+
+const user = tg.initDataUnsafe.user;
+const tgId = String(user.id);
+
+document.getElementById("tgId").innerText = tgId;
 
 // Серверге тіркелу
-fetch(`${SERVER}/player`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ tgId: playerId })
-})
-.then(r => r.json())
-.then(data => updateBalance(data.balance));
+async function loadPlayer() {
+  const res = await fetch(`${SERVER}/player`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tgId })
+  });
 
-// Ойынға қосылу
-socket.emit("joinGame", { tgId: playerId });
-
-let currentRoom = null;
-
-socket.on("waiting", data => {
-  document.getElementById("status").innerText = data.message;
-});
-
-socket.on("gameStart", data => {
-  currentRoom = data.roomId;
-  document.getElementById("status").innerText = "Ойын басталды! Таңдауыңызды жасаңыз.";
-});
-
-function makeMove(move) {
-  if (!currentRoom) return alert("Ойын басталмаған");
-  socket.emit("playerMove", { roomId: currentRoom, move });
+  const data = await res.json();
+  document.getElementById("balance").innerText = data.balance;
 }
 
-socket.on("roundResult", data => {
-  const { move1, move2, winner, balances } = data;
-  let statusText = `Сіздің таңдауыңыз: ${move1}, қарсы: ${move2}\n`;
+function reloadBalance() {
+  loadPlayer();
+}
 
-  if (winner === "draw") statusText += "Тең нәтиже!";
-  else if ((winner === "player1" && playerId === data.roomBalances?.player1) || 
-           (winner === "player2" && playerId === data.roomBalances?.player2)) statusText += "Сіз жеңдіңіз!";
-  else statusText += "Сіз жеңілдіңіз!";
-
-  document.getElementById("status").innerText = statusText;
-
-  // Баланс live жаңарту
-  if (balances[playerId] !== undefined) updateBalance(balances[playerId]);
-});
+loadPlayer();
 </script>
 
 </body>
