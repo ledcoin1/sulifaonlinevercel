@@ -34,7 +34,7 @@
 
   <!-- STATUS -->
   <div id="status" class="text-center text-yellow-400 mb-2">
-    Серверге қосылу...
+    Ставка таңда
   </div>
 
   <!-- TIMER -->
@@ -73,6 +73,10 @@ let myBalance = 0;
 let currentRoom = null;
 let timerInterval;
 
+// 🔒 LOCK FLAGS
+let isJoining = false;
+let inGame = false;
+
 // ---------- LOAD PLAYER ----------
 fetch(`${SERVER}/player`, {
   method: "POST",
@@ -90,13 +94,18 @@ fetch(`${SERVER}/player`, {
 function connectSocket() {
   socket = io(SERVER);
 
-  socket.on("waiting", bet => {
+  socket.on("waiting", () => {
     setStatus("⏳ Қарсылас күтілуде...");
   });
 
-  socket.on("game_start", ({ roomId, bet }) => {
+  socket.on("game_start", ({ roomId }) => {
+    inGame = true;
+    isJoining = false;
+
     currentRoom = roomId;
     document.getElementById("betPanel").classList.add("hidden");
+    disableBetButtons(true);
+
     setStatus("🎮 Таңда!");
     showGame();
     startTimer();
@@ -106,14 +115,16 @@ function connectSocket() {
     stopTimer();
     hideGame();
 
-    let text = "";
-    if (data.winner === "draw") {
-      text = "🤝 Тең!";
-    } else if (data.winner === tgId) {
-      text = "🏆 Сен жеңдің!";
-    } else {
-      text = "❌ Сен жеңілдің";
-    }
+    inGame = false;
+    isJoining = false;
+    disableBetButtons(false);
+
+    let text =
+      data.winner === "draw"
+        ? "🤝 Тең!"
+        : data.winner === tgId
+        ? "🏆 Сен жеңдің!"
+        : "❌ Сен жеңілдің";
 
     showResult(text);
     reloadBalance();
@@ -127,13 +138,24 @@ function connectSocket() {
 
 // ---------- JOIN ----------
 function joinRoom(bet) {
-  if (myBalance < bet) return alert("Баланс жеткіліксіз");
-  setStatus("Ойынға қосылу...");
+  if (isJoining || inGame) return;
+
+  if (myBalance < bet) {
+    alert("Баланс жеткіліксіз");
+    return;
+  }
+
+  isJoining = true;
+  disableBetButtons(true);
+
+  setStatus("⏳ Қарсылас күтілуде...");
   socket.emit("join_room", { tgId, bet });
 }
 
 // ---------- GAME ----------
 function sendChoice(choice) {
+  if (!inGame) return;
+
   hideGame();
   setStatus("⏳ Қарсылас таңдауда...");
   socket.emit("choice", { roomId: currentRoom, choice });
@@ -160,11 +182,25 @@ function stopTimer() {
 // ---------- UI ----------
 function resetGame() {
   currentRoom = null;
+  inGame = false;
+  isJoining = false;
+
+  disableBetButtons(false);
   hideGame();
+
   document.getElementById("result").classList.add("hidden");
   document.getElementById("restart").classList.add("hidden");
   document.getElementById("betPanel").classList.remove("hidden");
+
   setStatus("Ставка таңда");
+}
+
+function disableBetButtons(state) {
+  document.querySelectorAll(".bet-btn").forEach(btn => {
+    btn.disabled = state;
+    btn.classList.toggle("opacity-50", state);
+    btn.classList.toggle("cursor-not-allowed", state);
+  });
 }
 
 function updateBalance() {
