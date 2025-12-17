@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="kk">
 <head>
@@ -10,56 +9,57 @@
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+<body class="bg-gradient-to-b from-gray-900 to-gray-800 min-h-screen flex flex-col items-center py-6">
 
-<div class="w-full max-w-md bg-gray-800 rounded-xl p-6 shadow-xl">
-
-  <h1 class="text-2xl font-bold text-center mb-4">🪨📄✂️ Сулифа 1v1</h1>
-
-  <!-- PLAYER INFO -->
-  <div class="text-center mb-4">
-    <div>ID: <span id="tgId" class="font-mono text-xs break-all"></span></div>
-    <div class="mt-2 text-lg">Баланс: <span id="balance">0</span> 💰</div>
+  <!-- HEADER -->
+  <div class="w-full max-w-md bg-gray-900 rounded-xl shadow-xl p-4 mb-6 flex justify-between items-center">
+    <div class="text-white text-xs font-mono break-all">ID: <span id="tgId"></span></div>
+    <div class="text-yellow-400 font-semibold">Баланс: <span id="balance">0</span> 💰</div>
   </div>
 
-  <!-- BET ROOMS -->
-  <div id="betPanel" class="mb-4">
-    <div class="text-center mb-2 font-semibold">Ставка таңда</div>
-    <div class="grid grid-cols-4 gap-2">
-      <button onclick="joinRoom(500)" class="bet-btn">500</button>
-      <button onclick="joinRoom(1000)" class="bet-btn">1000</button>
-      <button onclick="joinRoom(1500)" class="bet-btn">1500</button>
-      <button onclick="joinRoom(2000)" class="bet-btn">2000</button>
+  <!-- GAME CARD -->
+  <div class="w-full max-w-md bg-gray-800 rounded-2xl shadow-2xl p-6 flex flex-col items-center">
+
+    <h1 class="text-3xl font-bold text-center mb-6">🪨📄✂️ Сулифа 1v1</h1>
+
+    <!-- STATUS -->
+    <div id="status" class="text-yellow-400 text-center mb-4 font-medium">
+      Ставка таңда
     </div>
+
+    <!-- BET ROOMS -->
+    <div id="betPanel" class="mb-6">
+      <div class="text-center mb-3 font-semibold text-gray-200">Ставка таңда</div>
+      <div class="grid grid-cols-4 gap-3">
+        <button onclick="joinRoom(500)" class="bet-btn">500</button>
+        <button onclick="joinRoom(1000)" class="bet-btn">1000</button>
+        <button onclick="joinRoom(1500)" class="bet-btn">1500</button>
+        <button onclick="joinRoom(2000)" class="bet-btn">2000</button>
+      </div>
+    </div>
+
+    <!-- TIMER -->
+    <div id="timerBox" class="hidden text-center mb-4 text-lg text-purple-400 font-semibold">
+      ⏱️ <span id="timer">15</span> сек
+    </div>
+
+    <!-- GAME CHOICES -->
+    <div id="gamePanel" class="hidden grid grid-cols-3 gap-4 mb-4">
+      <button onclick="sendChoice('rock')" class="choice-btn">🪨</button>
+      <button onclick="sendChoice('paper')" class="choice-btn">📄</button>
+      <button onclick="sendChoice('scissors')" class="choice-btn">✂️</button>
+    </div>
+
+    <!-- RESULT -->
+    <div id="result" class="hidden text-center text-xl font-semibold text-green-400 mb-4"></div>
+
+    <!-- RESTART -->
+    <button id="restart" onclick="resetGame()"
+      class="hidden w-full bg-purple-600 hover:bg-purple-700 transition-colors text-white font-semibold p-3 rounded-xl">
+      🔁 Қайта ойнау
+    </button>
+
   </div>
-
-  <!-- STATUS -->
-  <div id="status" class="text-center text-yellow-400 mb-2">
-    Ставка таңда
-  </div>
-
-  <!-- TIMER -->
-  <div id="timerBox" class="hidden text-center mb-3">
-    ⏱️ <span id="timer">15</span> сек
-  </div>
-
-  <!-- GAME -->
-  <div id="gamePanel" class="hidden grid grid-cols-3 gap-3 mb-4">
-    <button onclick="sendChoice('rock')" class="choice">🪨</button>
-    <button onclick="sendChoice('paper')" class="choice">📄</button>
-    <button onclick="sendChoice('scissors')" class="choice">✂️</button>
-  </div>
-
-  <!-- RESULT -->
-  <div id="result" class="hidden text-center text-lg font-semibold"></div>
-
-  <!-- RESTART -->
-  <button id="restart" onclick="resetGame()"
-    class="hidden mt-4 w-full bg-purple-600 p-2 rounded">
-    🔁 Қайта ойнау
-  </button>
-
-</div>
 
 <script>
 const SERVER = "https://sulifaonlinerender.onrender.com";
@@ -74,7 +74,6 @@ let myBalance = 0;
 let currentRoom = null;
 let timerInterval;
 
-// 🔒 LOCK FLAGS
 let isJoining = false;
 let inGame = false;
 
@@ -95,9 +94,7 @@ fetch(`${SERVER}/player`, {
 function connectSocket() {
   socket = io(SERVER);
 
-  socket.on("waiting", () => {
-    setStatus("⏳ Қарсылас күтілуде...");
-  });
+  socket.on("waiting", () => setStatus("⏳ Қарсылас күтілуде..."));
 
   socket.on("game_start", ({ roomId }) => {
     inGame = true;
@@ -244,14 +241,24 @@ function showResult(text) {
 <style>
 .bet-btn {
   background:#374151;
-  padding:8px;
-  border-radius:8px;
-}
-.choice {
-  background:#4b5563;
-  font-size:28px;
-  padding:14px;
+  padding:12px;
   border-radius:12px;
+  font-weight:600;
+  color:white;
+  transition:all 0.2s;
+}
+.bet-btn:hover {
+  background:#4b5563;
+}
+.choice-btn {
+  background:#4b5563;
+  font-size:32px;
+  padding:18px;
+  border-radius:16px;
+  transition:all 0.2s;
+}
+.choice-btn:hover {
+  background:#6b7280;
 }
 </style>
 
