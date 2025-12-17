@@ -9,53 +9,51 @@
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+<body class="bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen">
 
-<div class="w-full max-w-lg bg-gray-800 rounded-xl p-6 shadow-xl">
+<div class="max-w-2xl mx-auto py-6">
 
-  <!-- TOP PANEL: ID | Name | Balance -->
-  <div class="flex justify-between items-center mb-4">
+  <!-- TOP PANEL -->
+  <div class="flex justify-between items-center bg-gray-800 p-4 rounded-xl shadow-lg mb-6">
     <div>
-      ID: <span id="tgId" class="font-mono text-xs break-all"></span>
+      <div class="text-gray-400 text-xs">ID</div>
+      <div id="tgId" class="text-white font-mono"></div>
     </div>
-    <div class="flex items-center gap-2">
-      <input id="playerName" type="text" placeholder="Атыңыз" class="bg-gray-700 px-2 py-1 rounded text-white text-sm">
-      <span id="balance" class="text-lg font-semibold">0 💰</span>
+    <div class="flex flex-col items-end">
+      <input id="playerName" type="text" placeholder="Атыңыз"
+        class="bg-gray-700 px-3 py-1 rounded text-white text-sm mb-1 w-32 text-right">
+      <div class="text-lg font-semibold text-yellow-400">
+        Баланс: <span id="balance">0</span> 💰
+      </div>
     </div>
   </div>
 
-  <h1 class="text-2xl font-bold text-center mb-4">🪨📄✂️ Сулифа 1v1</h1>
-
-  <!-- STATUS -->
-  <div id="status" class="text-center text-yellow-400 mb-2">Ставка таңда</div>
-
-  <!-- TIMER -->
-  <div id="timerBox" class="hidden text-center mb-3 text-lg">⏱️ <span id="timer">15</span> сек</div>
+  <!-- STATUS & TIMER -->
+  <div class="flex justify-between items-center mb-4">
+    <div id="status" class="text-yellow-400 font-semibold">Ставка таңда</div>
+    <div id="timerBox" class="hidden text-white font-bold text-lg">⏱️ <span id="timer">15</span> сек</div>
+  </div>
 
   <!-- BET ROOMS -->
-  <div id="betPanel" class="mb-4">
-    <div class="text-center mb-2 font-semibold">Ставка таңда</div>
-    <div class="grid grid-cols-4 gap-2">
-      <button onclick="joinRoom(500)" class="bet-btn">500</button>
-      <button onclick="joinRoom(1000)" class="bet-btn">1000</button>
-      <button onclick="joinRoom(1500)" class="bet-btn">1500</button>
-      <button onclick="joinRoom(2000)" class="bet-btn">2000</button>
-    </div>
+  <div id="betPanel" class="grid grid-cols-2 gap-4 mb-6">
+    <button onclick="joinRoom(500)" class="bet-btn p-4 rounded-xl shadow-md bg-gradient-to-r from-blue-600 to-blue-400 text-white font-bold text-lg">500</button>
+    <button onclick="joinRoom(1000)" class="bet-btn p-4 rounded-xl shadow-md bg-gradient-to-r from-green-600 to-green-400 text-white font-bold text-lg">1000</button>
+    <button onclick="joinRoom(1500)" class="bet-btn p-4 rounded-xl shadow-md bg-gradient-to-r from-purple-600 to-purple-400 text-white font-bold text-lg">1500</button>
+    <button onclick="joinRoom(2000)" class="bet-btn p-4 rounded-xl shadow-md bg-gradient-to-r from-red-600 to-red-400 text-white font-bold text-lg">2000</button>
   </div>
 
   <!-- GAME PANEL -->
-  <div id="gamePanel" class="hidden grid grid-cols-3 gap-3 mb-4">
-    <button onclick="sendChoice('rock')" class="choice">🪨</button>
-    <button onclick="sendChoice('paper')" class="choice">📄</button>
-    <button onclick="sendChoice('scissors')" class="choice">✂️</button>
+  <div id="gamePanel" class="hidden grid grid-cols-3 gap-4 mb-6">
+    <button onclick="sendChoice('rock')" class="choice p-6 bg-gray-700 rounded-2xl shadow-lg text-3xl hover:scale-105 transition-transform">🪨</button>
+    <button onclick="sendChoice('paper')" class="choice p-6 bg-gray-700 rounded-2xl shadow-lg text-3xl hover:scale-105 transition-transform">📄</button>
+    <button onclick="sendChoice('scissors')" class="choice p-6 bg-gray-700 rounded-2xl shadow-lg text-3xl hover:scale-105 transition-transform">✂️</button>
   </div>
 
   <!-- RESULT -->
-  <div id="result" class="hidden text-center text-lg font-semibold mb-4"></div>
+  <div id="result" class="hidden bg-gray-800 p-4 rounded-xl shadow-md text-center text-lg font-bold text-white mb-4"></div>
 
   <!-- RESTART -->
-  <button id="restart" onclick="resetGame()"
-    class="hidden mt-2 w-full bg-purple-600 p-2 rounded">
+  <button id="restart" onclick="resetGame()" class="hidden w-full p-3 rounded-xl bg-yellow-500 font-semibold text-black hover:bg-yellow-400 transition-colors">
     🔁 Қайта ойнау
   </button>
 
@@ -74,24 +72,21 @@ let myBalance = 0;
 let currentRoom = null;
 let timerInterval;
 
-// LOCK FLAGS
 let isJoining = false;
 let inGame = false;
 
-// ---------- LOAD PLAYER ----------
+// Load player
 fetch(`${SERVER}/player`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ tgId })
-})
-.then(r => r.json())
-.then(p => {
+}).then(r => r.json()).then(p => {
   myBalance = p.balance;
   updateBalance();
   connectSocket();
 });
 
-// ---------- SOCKET ----------
+// Socket
 function connectSocket() {
   socket = io(SERVER);
 
@@ -107,6 +102,7 @@ function connectSocket() {
 
     document.getElementById("betPanel").classList.add("hidden");
     disableBetButtons(true);
+
     setStatus(`🎮 Қарсылас: ${p1Name === myName ? p2Name : p1Name} таңда!`);
     showGame();
     startTimer();
@@ -120,38 +116,29 @@ function connectSocket() {
     isJoining = false;
     disableBetButtons(false);
 
-    let text =
-      data.winner === "draw"
-        ? "🤝 Тең!"
-        : data.winner === tgId
-        ? "🏆 Сен жеңдің!"
-        : "❌ Сен жеңілдің";
+    let text = data.winner === "draw" ? "🤝 Тең!" :
+               data.winner === tgId ? "🏆 Сен жеңдің!" : "❌ Сен жеңілдің";
 
     showResult(text);
     reloadBalance();
   });
 
-  socket.on("error_msg", msg => {
-    alert(msg);
-    resetGame();
-  });
+  socket.on("error_msg", msg => { alert(msg); resetGame(); });
 }
 
-// ---------- JOIN ----------
+// Join
 function joinRoom(bet) {
   if (isJoining || inGame) return;
-
   if (myBalance < bet) { alert("Баланс жеткіліксіз"); return; }
 
   const myName = document.getElementById("playerName").value || tgId;
   isJoining = true;
   disableBetButtons(true);
-
   setStatus("⏳ Қарсылас күтілуде...");
   socket.emit("join_room", { tgId, bet, playerName: myName });
 }
 
-// ---------- GAME ----------
+// Game
 function sendChoice(choice) {
   if (!inGame) return;
   hideGame();
@@ -159,7 +146,7 @@ function sendChoice(choice) {
   socket.emit("choice", { roomId: currentRoom, choice });
 }
 
-// ---------- TIMER ----------
+// Timer
 function startTimer() {
   let t = 15;
   document.getElementById("timer").innerText = t;
@@ -177,7 +164,7 @@ function stopTimer() {
   document.getElementById("timerBox").classList.add("hidden");
 }
 
-// ---------- UI ----------
+// UI
 function resetGame() {
   currentRoom = null;
   inGame = false;
@@ -198,21 +185,14 @@ function disableBetButtons(state) {
   });
 }
 
-function updateBalance() {
-  document.getElementById("balance").innerText = myBalance;
-}
+function updateBalance() { document.getElementById("balance").innerText = myBalance; }
 
 function reloadBalance() {
   fetch(`${SERVER}/player`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ tgId })
-  })
-  .then(r => r.json())
-  .then(p => {
-    myBalance = p.balance;
-    updateBalance();
-  });
+  }).then(r => r.json()).then(p => { myBalance = p.balance; updateBalance(); });
 }
 
 function setStatus(text) { document.getElementById("status").innerText = text; }
@@ -227,10 +207,14 @@ function showResult(text) {
 </script>
 
 <style>
-.bet-btn { background:#374151; padding:8px; border-radius:8px; transition:0.2s; }
-.bet-btn:hover { background:#4b5563; }
-.choice { background:#4b5563; font-size:28px; padding:14px; border-radius:12px; transition:0.2s; }
-.choice:hover { background:#6b7280; }
+.bet-btn {
+  transition:0.2s; font-bold text-white;
+}
+.bet-btn:hover { transform: scale(1.05); }
+.choice {
+  transition:0.2s;
+}
+.choice:hover { transform: scale(1.1); }
 </style>
 
 </body>
