@@ -8,84 +8,67 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
-
 <body class="bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white min-h-screen flex flex-col">
 
-<!-- HEADER -->
-<header class="flex justify-between items-center p-4 bg-gradient-to-r from-purple-700 via-pink-600 to-red-500 shadow-lg">
-  <div class="text-xs font-mono">ID: <span id="tgId"></span></div>
+  <!-- HEADER -->
+  <header class="flex justify-between items-center p-4 bg-gradient-to-r from-purple-700 via-pink-600 to-red-500 shadow-lg">
+    <div class="text-sm font-mono break-all">ID: <span id="tgId"></span></div>
+    <div class="text-lg font-semibold">Баланс: <span id="balance">0</span> 💰</div>
+  </header>
 
-  <div class="flex items-center gap-3">
-    <div class="text-lg font-semibold">💰 <span id="balance">0</span></div>
-    <button onclick="openNov()"
-      class="px-3 py-1 rounded-lg bg-black/30 hover:bg-black/50 transition text-sm font-bold">
-      NoV
-    </button>
-  </div>
-</header>
+  <!-- MAIN PANEL -->
+  <main class="flex-1 flex flex-col items-center justify-center px-4">
 
-<!-- MAIN -->
-<main class="flex-1 flex flex-col items-center justify-center px-4">
+    <h1 class="text-3xl md:text-4xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-pink-500">
+      🪨📄✂️ Сулифа 1v1
+    </h1>
 
-  <h1 class="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-pink-500">
-    🪨📄✂️ Сулифа 1v1
-  </h1>
-
-  <div id="status" class="mb-4 text-yellow-400 font-semibold">Ставка таңда</div>
-
-  <!-- BET -->
-  <div id="betPanel" class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-xl mb-6">
-    <button onclick="joinRoom(500)" class="bet-btn">500</button>
-    <button onclick="joinRoom(1000)" class="bet-btn">1000</button>
-    <button onclick="joinRoom(1500)" class="bet-btn">1500</button>
-    <button onclick="joinRoom(2000)" class="bet-btn">2000</button>
-  </div>
-
-  <!-- TIMER -->
-  <div id="timerBox" class="hidden w-full max-w-xs mb-4">
-    <div class="flex justify-between text-sm mb-1">
-      ⏱️ <span id="timer">15</span> сек
+    <!-- STATUS -->
+    <div id="status" class="text-center text-yellow-400 mb-4 text-lg font-semibold">
+      Ставка таңда
     </div>
-    <div class="h-2 bg-gray-700 rounded">
-      <div id="timerBar" class="h-2 bg-green-400 rounded w-full transition-all"></div>
+
+    <!-- BET ROOMS -->
+    <div id="betPanel" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 w-full max-w-xl">
+      <button onclick="joinRoom(500)" class="bet-btn">500</button>
+      <button onclick="joinRoom(1000)" class="bet-btn">1000</button>
+      <button onclick="joinRoom(1500)" class="bet-btn">1500</button>
+      <button onclick="joinRoom(2000)" class="bet-btn">2000</button>
     </div>
-  </div>
 
-  <!-- GAME -->
-  <div id="gamePanel" class="hidden grid grid-cols-3 gap-4 mb-6">
-    <button onclick="sendChoice('rock')" class="choice">🪨</button>
-    <button onclick="sendChoice('paper')" class="choice">📄</button>
-    <button onclick="sendChoice('scissors')" class="choice">✂️</button>
-  </div>
+    <!-- TIMER -->
+    <div id="timerBox" class="hidden w-full max-w-xs mb-4">
+      <div class="flex items-center justify-between text-sm mb-1">⏱️ Таймер: <span id="timer">15</span> сек</div>
+      <div class="w-full h-2 bg-gray-700 rounded">
+        <div id="timerBar" class="h-2 bg-green-400 rounded w-full transition-all"></div>
+      </div>
+    </div>
 
-  <div id="result" class="hidden text-xl font-bold mb-4 px-4 py-2 rounded"></div>
+    <!-- GAME PANEL -->
+    <div id="gamePanel" class="hidden grid grid-cols-3 gap-4 mb-6 w-full max-w-md">
+      <button onclick="sendChoice('rock')" class="choice">🪨</button>
+      <button onclick="sendChoice('paper')" class="choice">📄</button>
+      <button onclick="sendChoice('scissors')" class="choice">✂️</button>
+    </div>
 
-  <button id="restart" onclick="resetGame()" class="hidden px-6 py-2 bg-purple-600 rounded-lg font-semibold">
-    🔁 Қайта ойнау
-  </button>
-</main>
+    <!-- RESULT -->
+    <div id="result" class="hidden text-center text-xl font-bold py-3 px-4 rounded mb-4"></div>
 
-<!-- ================= NoV MODAL ================= -->
-<div id="novModal" class="hidden fixed inset-0 bg-black/70 flex items-end justify-center z-50">
-  <div class="bg-gray-900 w-full max-w-md rounded-t-3xl p-5 animate-slideUp">
-    <h2 class="text-xl font-bold mb-4 text-center">💸 Баланс шығару</h2>
-
-    <input id="withdrawAmount" type="number" placeholder="Сома (мин 20000)"
-      class="w-full mb-3 p-3 rounded bg-gray-800 outline-none">
-
-    <textarea id="withdrawComment" placeholder="Комментарий (міндетті)"
-      class="w-full mb-4 p-3 rounded bg-gray-800 outline-none"></textarea>
-
-    <button onclick="sendWithdraw()"
-      class="w-full bg-green-500 hover:bg-green-600 py-3 rounded-lg font-bold">
-      Шығару
+    <!-- RESTART -->
+    <button id="restart" onclick="resetGame()" class="hidden w-full max-w-md p-3 rounded bg-purple-600 hover:bg-purple-700 transition-colors font-semibold">
+      🔁 Қайта ойнау
     </button>
 
-    <button onclick="closeNov()" class="w-full mt-3 text-gray-400">
-      Жабу
-    </button>
-  </div>
-</div>
+    <!-- ================= NoV WITHDRAW ================= -->
+    <div class="w-full max-w-md mt-6 p-4 bg-gray-800 rounded shadow-md">
+      <h2 class="text-lg font-semibold mb-2">💸 Вывод баланс</h2>
+      <input type="number" id="withdrawAmount" placeholder="Сома (мін. 20000)" class="w-full mb-2 p-2 rounded bg-gray-700 text-white">
+      <input type="text" id="withdrawComment" placeholder="Комментарий" class="w-full mb-2 p-2 rounded bg-gray-700 text-white">
+      <button onclick="sendWithdraw()" class="w-full p-2 rounded bg-yellow-500 hover:bg-yellow-600 font-semibold">Вывести</button>
+      <div id="withdrawStatus" class="text-sm mt-2 text-center"></div>
+    </div>
+
+  </main>
 
 <script>
 const SERVER = "https://sulifaonlinerender.onrender.com";
@@ -95,144 +78,194 @@ tg.expand();
 const tgId = tg.initDataUnsafe?.user?.id?.toString() || "test_" + Math.random();
 document.getElementById("tgId").innerText = tgId;
 
-let socket, myBalance = 0, currentRoom = null, timerInterval;
-let isJoining = false, inGame = false;
+let socket;
+let myBalance = 0;
+let currentRoom = null;
+let timerInterval;
 
-// LOAD PLAYER
+// LOCK FLAGS
+let isJoining = false;
+let inGame = false;
+
+// ---------- LOAD PLAYER ----------
 fetch(`${SERVER}/player`, {
-  method:"POST",
-  headers:{ "Content-Type":"application/json" },
-  body:JSON.stringify({ tgId })
-}).then(r=>r.json()).then(p=>{
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ tgId })
+})
+.then(r => r.json())
+.then(p => {
   myBalance = p.balance;
   updateBalance();
   connectSocket();
 });
 
-// SOCKET
-function connectSocket(){
+// ---------- SOCKET ----------
+function connectSocket() {
   socket = io(SERVER);
 
-  socket.on("waiting",()=>setStatus("⏳ Қарсылас күтілуде..."));
+  socket.on("waiting", () => setStatus("⏳ Қарсылас күтілуде..."));
 
-  socket.on("game_start",({roomId})=>{
-    inGame=true; isJoining=false;
-    currentRoom=roomId;
-    betPanel.classList.add("hidden");
+  socket.on("game_start", ({ roomId }) => {
+    inGame = true; isJoining = false;
+    currentRoom = roomId;
+    document.getElementById("betPanel").classList.add("hidden");
+    disableBetButtons(true);
     setStatus("🎮 Таңда!");
-    gamePanel.classList.remove("hidden");
+    showGame();
     startTimer();
   });
 
-  socket.on("game_result",d=>{
+  socket.on("game_result", data => {
     stopTimer();
-    inGame=false; isJoining=false;
-    gamePanel.classList.add("hidden");
-    result.classList.remove("hidden");
+    hideGame();
+    inGame = false; isJoining = false;
+    disableBetButtons(false);
 
-    result.innerText = d.winner==="draw"
+    let text = data.winner === "draw"
       ? "🤝 Тең!"
-      : d.winner===tgId ? "🏆 Жеңіс!" : "❌ Жеңілдің";
+      : data.winner === tgId ? "🏆 Сен жеңдің!" : "❌ Сен жеңілдің";
 
+    const resultBox = document.getElementById("result");
+    resultBox.innerText = text;
+    resultBox.classList.remove("hidden");
+    resultBox.classList.remove("bg-green-500","bg-red-500","bg-yellow-400");
+    if(data.winner === tgId) resultBox.classList.add("bg-green-500");
+    else if(data.winner === "draw") resultBox.classList.add("bg-yellow-400");
+    else resultBox.classList.add("bg-red-500");
+
+    document.getElementById("restart").classList.remove("hidden");
     reloadBalance();
-    restart.classList.remove("hidden");
   });
+
+  socket.on("error_msg", msg => { alert(msg); resetGame(); });
 }
 
-// JOIN
-function joinRoom(bet){
-  if(isJoining||inGame) return;
-  if(myBalance<bet) return alert("Баланс жеткіліксіз");
-  isJoining=true;
-  socket.emit("join_room",{ tgId, bet });
+// ---------- JOIN ----------
+function joinRoom(bet) {
+  if (isJoining || inGame) return;
+  if (myBalance < bet) { alert("Баланс жеткіліксіз"); return; }
+
+  isJoining = true;
+  disableBetButtons(true);
+  setStatus("⏳ Қарсылас күтілуде...");
+  socket.emit("join_room", { tgId, bet });
 }
 
-// GAME
-function sendChoice(choice){
-  socket.emit("choice",{ roomId:currentRoom, choice });
-  gamePanel.classList.add("hidden");
+// ---------- GAME ----------
+function sendChoice(choice) {
+  if (!inGame) return;
+  hideGame();
+  setStatus("⏳ Қарсылас таңдауда...");
+  socket.emit("choice", { roomId: currentRoom, choice });
 }
 
-// TIMER
-function startTimer(){
-  let t=15;
-  timerBox.classList.remove("hidden");
-  timer.innerText=t;
-  timerBar.style.width="100%";
-  timerInterval=setInterval(()=>{
+// ---------- TIMER ----------
+function startTimer() {
+  let t = 15;
+  document.getElementById("timer").innerText = t;
+  document.getElementById("timerBox").classList.remove("hidden");
+
+  const bar = document.getElementById("timerBar");
+  bar.style.width = "100%";
+
+  timerInterval = setInterval(() => {
     t--;
-    timer.innerText=t;
-    timerBar.style.width=(t/15*100)+"%";
+    document.getElementById("timer").innerText = t;
+    bar.style.width = `${(t/15)*100}%`;
     if(t<=0) stopTimer();
   },1000);
 }
-function stopTimer(){
+
+function stopTimer() {
   clearInterval(timerInterval);
-  timerBox.classList.add("hidden");
+  document.getElementById("timerBox").classList.add("hidden");
 }
 
-// UI HELPERS
-function resetGame(){
-  currentRoom=null;
-  betPanel.classList.remove("hidden");
-  restart.classList.add("hidden");
-  result.classList.add("hidden");
+// ---------- UI ----------
+function resetGame() {
+  currentRoom = null; inGame = false; isJoining = false;
+  disableBetButtons(false); hideGame();
+  document.getElementById("result").classList.add("hidden");
+  document.getElementById("restart").classList.add("hidden");
+  document.getElementById("betPanel").classList.remove("hidden");
   setStatus("Ставка таңда");
 }
-function setStatus(t){ status.innerText=t; }
-function updateBalance(){ balance.innerText=myBalance; }
+
+function disableBetButtons(state) {
+  document.querySelectorAll(".bet-btn").forEach(btn=>{
+    btn.disabled = state;
+    btn.classList.toggle("opacity-50", state);
+    btn.classList.toggle("cursor-not-allowed", state);
+  });
+}
+
+function updateBalance(){ document.getElementById("balance").innerText = myBalance; }
 function reloadBalance(){
   fetch(`${SERVER}/player`,{
     method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({ tgId })
-  }).then(r=>r.json()).then(p=>{
-    myBalance=p.balance; updateBalance();
-  });
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({tgId})
+  }).then(r=>r.json()).then(p=>{ myBalance=p.balance; updateBalance(); });
 }
 
-// ================= NoV =================
-function openNov(){ novModal.classList.remove("hidden"); }
-function closeNov(){ novModal.classList.add("hidden"); }
+function setStatus(text){ document.getElementById("status").innerText=text; }
+function showGame(){ document.getElementById("gamePanel").classList.remove("hidden"); }
+function hideGame(){ document.getElementById("gamePanel").classList.add("hidden"); }
 
-function sendWithdraw(){
-  const amount = +withdrawAmount.value;
-  const comment = withdrawComment.value.trim();
+// ---------- NoV Withdraw ----------
+function sendWithdraw() {
+  const amount = parseInt(document.getElementById("withdrawAmount").value);
+  const comment = document.getElementById("withdrawComment").value.trim();
+  const statusBox = document.getElementById("withdrawStatus");
+  statusBox.innerText = "";
 
-  if(amount < 20000) return alert("Минимум 20000");
-  if(!comment) return alert("Комментарий міндетті");
-  if(amount > myBalance) return alert("Баланс жетпейді");
+  if(!amount || !comment) { statusBox.innerText = "Сома мен комментарийді толтырыңыз"; return; }
 
-  myBalance -= amount;
-  updateBalance();
-  closeNov();
-
-  fetch(`${SERVER}/withdraw`,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({ tgId, amount, comment })
-  });
+  fetch(`${SERVER}/player/withdraw`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tgId, amount, comment })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if(res.error) statusBox.innerText = res.error;
+    else {
+      myBalance = res.balance;
+      updateBalance();
+      statusBox.innerText = `✅ Вывод жасалды!`;
+      document.getElementById("withdrawAmount").value = "";
+      document.getElementById("withdrawComment").value = "";
+    }
+  })
+  .catch(err => { statusBox.innerText = "Қате шықты"; console.error(err); });
 }
 </script>
 
 <style>
 .bet-btn{
   background:#4f46e5;
-  padding:14px;
-  border-radius:14px;
+  padding:12px;
   font-size:18px;
+  border-radius:12px;
+  font-semibold;
+  transition: all 0.2s;
+}
+.bet-btn:hover{
+  transform: translateY(-2px);
+  background:#6366f1;
 }
 .choice{
   background:#1f2937;
   font-size:36px;
-  padding:20px;
-  border-radius:18px;
+  padding:16px;
+  border-radius:16px;
+  transition: all 0.2s;
 }
-@keyframes slideUp{
-  from{transform:translateY(100%)}
-  to{transform:translateY(0)}
+.choice:hover{
+  transform: translateY(-2px);
+  background:#374151;
 }
-.animate-slideUp{ animation:slideUp .3s ease-out }
 </style>
 
 </body>
