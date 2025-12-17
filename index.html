@@ -62,7 +62,7 @@
     <!-- ================= NoV WITHDRAW ================= -->
     <div class="w-full max-w-md mt-6 p-4 bg-gray-800 rounded shadow-md">
       <h2 class="text-lg font-semibold mb-2">💸 Вывод баланс</h2>
-      <input type="number" id="withdrawAmount" placeholder="Сома (мін. 20000)" class="w-full mb-2 p-2 rounded bg-gray-700 text-white">
+      <input type="number" id="withdrawAmount" placeholder="Сома (мін. 5000)" class="w-full mb-2 p-2 rounded bg-gray-700 text-white">
       <input type="text" id="withdrawComment" placeholder="Комментарий" class="w-full mb-2 p-2 rounded bg-gray-700 text-white">
       <button onclick="sendWithdraw()" class="w-full p-2 rounded bg-yellow-500 hover:bg-yellow-600 font-semibold">Вывести</button>
       <div id="withdrawStatus" class="text-sm mt-2 text-center"></div>
@@ -222,6 +222,12 @@ function sendWithdraw() {
 
   if(!amount || !comment) { statusBox.innerText = "Сома мен комментарийді толтырыңыз"; return; }
 
+  if(amount < 5000) { // минималды сома өзгертілді
+    statusBox.innerText = "Минимум вывод 5000";
+    statusBox.style.color = "red";
+    return;
+  }
+
   fetch(`${SERVER}/player/withdraw`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -229,16 +235,19 @@ function sendWithdraw() {
   })
   .then(r => r.json())
   .then(res => {
-    if(res.error) statusBox.innerText = res.error;
-    else {
+    if(res.error) {
+      statusBox.innerText = res.error;
+      statusBox.style.color = "red";
+    } else {
       myBalance = res.balance;
       updateBalance();
-      statusBox.innerText = `✅ Вывод жасалды!`;
+      statusBox.innerText = `✅ Вывод жасалды! Жаңа баланс: ${myBalance}`;
+      statusBox.style.color = "green";
       document.getElementById("withdrawAmount").value = "";
       document.getElementById("withdrawComment").value = "";
     }
   })
-  .catch(err => { statusBox.innerText = "Қате шықты"; console.error(err); });
+  .catch(err => { statusBox.innerText = "Қате шықты"; statusBox.style.color="red"; console.error(err); });
 }
 </script>
 
